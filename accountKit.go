@@ -45,12 +45,13 @@ func NewAccountKit(appID, appSecret string) *AccountKit {
 	}
 }
 
-func (a *AccountKit) VerifyByToken(userAccessToken string, accountKitAppSecret string) (*Profile, error) {
+// appSecret is the account kit's app secret
+func (a *AccountKit) VerifyByToken(userAccessToken string) (*Profile, error) {
 	queryParams := url.Values{}
 	queryParams.Add("access_token", userAccessToken)
 
 	// hash hmac sha256 token with appSecret
-	appSecretProof := computeHmac256(userAccessToken, accountKitAppSecret)
+	appSecretProof := computeHmac256(userAccessToken, a.AppSecret)
 	queryParams.Add("appsecret_proof", appSecretProof)
 
 	request, err := http.NewRequest(http.MethodGet,
