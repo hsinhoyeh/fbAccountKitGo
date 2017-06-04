@@ -1,6 +1,9 @@
 package fbAccountKitGo
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -42,9 +45,14 @@ func NewAccountKit(appID, appSecret string) *AccountKit {
 	}
 }
 
-func (a *AccountKit) VerifyByToken(token string) (*Profile, error) {
+// appSecret is the account kit's app secret
+func (a *AccountKit) VerifyByToken(userAccessToken string) (*Profile, error) {
 	queryParams := url.Values{}
-	queryParams.Add("access_token", token)
+	queryParams.Add("access_token", userAccessToken)
+
+	// hash hmac sha256 token with appSecret
+	appSecretProof := computeHmac256(userAccessToken, a.AppSecret)
+	queryParams.Add("appsecret_proof", appSecretProof)
 
 	request, err := http.NewRequest(http.MethodGet,
 		fmt.Sprintf("https://graph.accountkit.com/v1.0/me/?%s", queryParams.Encode()),
@@ -115,4 +123,10 @@ func (a *AccountKit) do(req *http.Request) (*http.Response, error) {
 	}
 
 	return resp, err
+}
+
+func computeHmac256(userAccessToken string, accountKitAppSecret string) string {
+	hash := hmac.New(sha256.New, []byte(accountKitAppSecret))
+	hash.Write([]byte(userAccessToken))
+	return hex.EncodeToString(hash.Sum(nil))
 }
